@@ -1,0 +1,34 @@
+Possible sequence evolution simulators:
+hyde
+ms
+seqgen
+
+The R script in this folder is from Martin, Davis and Jiggins, 2014
+
+It's used to apply ms to simulate introgression
+
+ms download:
+https://uchicago.app.box.com/s/l3e5uf13tikfjm7e1il1eujitlsjdx13
+
+Before running ms, run the following commands
+
+export PATH=$PATH:/Applications/msdir
+
+export PATH=$PATH:/Applications/Seq-Gen.v1.3.3/source
+
+ms 32 1 -I 4 8 8 8 8 -ej 1 2 1 -ej 3 4 1 -es 0.1 2 0.8 -ej 0.1 5 3 -r 50 5000 -T | tail -n + 4 | grep -v // >treefile 
+
+notes:
+ej = a speciation event essentially
+
+partitions=($(wc -l treefile)
+seq-gen -mHKY -l 5000 -s 0.01 -p $partitions <treefile >seqfile
+
+
+ret.ms <- ms(nsam = 32, nreps = 100, opts = "-T -t 50 -I 4 8 8 8 8 -ej 1 2 1 -ej 2 3 1 -ej 3 4 1 -es 0.1 2 1 -ej 0.1 5 3 -r 5 5000")
+
+
+
+
+
+ms 4 1 -T -t 50 -I 4 1 1 1 1 -ej 1 2 1 -ej 2 3 1 -ej 3 4 1 -r 5 5000 | tail -n + 4 | grep -v // >treefile
