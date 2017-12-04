@@ -1,0 +1,2 @@
+Add raxml to path
+PATH=$PATH:/Applications/standard-RAxML-master
