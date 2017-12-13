@@ -128,8 +128,8 @@ S3ig2_3<-dist_matIG2_3[1, 3]
 
 return(c(S1sp, S2sp, S3sp, S1ig, S2ig, S3ig, S1ig2_3, S2ig2_3, S3ig2_3))
 }
-#set the number of replicates to use
-reps<-10000
+#set the number of replicates to use (mosquito number is 3019 [2791 autosomal]) 
+reps<-2791
 sim_rep_out<-replicate(reps, full_sim())
 
 stats_out_df<-data.frame(matrix(unlist(sim_rep_out), nrow=reps, byrow=TRUE))
@@ -213,8 +213,8 @@ for(y in 1:length(prop3_2)){
 row.names(mat_comb)<-propIG
 colnames(mat_comb)<-prop3_2
 
-#install.packages(gplots)
-#library(gplots)
+install.packages(gplots)
+library(gplots)
 
 mat_comb_new<-mat_comb[ nrow(mat_comb):1, ]
 
@@ -225,6 +225,167 @@ heatmap.2(mat_comb_new, Rowv =NULL, Colv = NULL, col=c("red", "white", "dark gra
           ylab = "proportion of sampled genes introgressed"
           )
 
+#############################################################
+### Create graphs for the difference between DXSP and DXIG ###
+#############################################################
+#initiate an empty matrix
+matS2_diff<-matrix(, ncol = 11, nrow = 9)
+matS3_diff<-matrix(, ncol = 11, nrow = 9)
+
+prop3_2<-c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0)
+
+for(y in 1:length(prop3_2)){
+  #total measurement from uni or bidirectional introgressed genes.
+  total_S2<-c(sample(stats_out_df$S2igto2, prop3_2[y]*reps),sample(stats_out_df$S2igto3, ((1-(prop3_2[y]))*reps)))
+  total_S3<-c(sample(stats_out_df$S3igto2, prop3_2[y]*reps),sample(stats_out_df$S3igto3, ((1-(prop3_2[y]))*reps)))
+  
+  #subsample the totals to test different numbers of introgressed vs speciation genes
+  #different value of the proportion of the genome that was introgressed
+  propIG<-c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+  
+  #start a nested loop for proportion of genome introgressed
+  for(z in 1:length(propIG)){
+    #Assign the final dataset for speciation genes
+    sp_finalS2<-sample(stats_out_df$S2sp, ((1-(propIG[z]))*reps))
+    sp_finalS3<-sample(stats_out_df$S3sp, ((1-(propIG[z]))*reps))
+    
+    #Assign the final dataset for IG genes
+    ig_finalS2<-sample(total_S2, propIG[z]*reps)
+    ig_finalS3<-sample(total_S3, propIG[z]*reps)
+    
+    # 32 = -1
+    # 23 = 1
+    
+    # NOTE, NORMALIZE THIS VALUE BY THE AVERAGE VALUE FOR THE 3RD QUARTILE 
+    #Calculate difference between D2SP and D2IG
+    D2_diff<-abs(median(sp_finalS2) - median(ig_finalS2)) / 
+      ((quantile(sp_finalS2)[[4]]+quantile(sp_finalS2)[[4]])/2) #this is to normalize the value
+    
+    #Calculate difference between D3SP and D3IG
+    D3_diff<-abs(median(sp_finalS3) - median(ig_finalS3)) /
+    ((quantile(sp_finalS2)[[4]]+quantile(sp_finalS2)[[4]])/2) #this is to normalize the value
+    
+    #store results to a matrix of results
+    matS2_diff[z,y]<-D2_diff
+    matS3_diff[z,y]<-D3_diff
+  }
+}
+#clean up S2 and S3 matrix
+row.names(matS2_diff)<-propIG
+colnames(matS2_diff)<-prop3_2
+
+row.names(matS3_diff)<-propIG
+colnames(matS3_diff)<-prop3_2
+
+#Make heatmap for S2 diff
+matS2_diff_new<-matS2_diff[ nrow(matS2_diff):1, ]
+
+#assign color function
+colfunc1<-colorRampPalette(c("dark gray","white", "white", "red"))
+
+heatmap.2(matS2_diff_new, Rowv =NULL, Colv = NULL, 
+          #col= c("dark gray", "gray", "light gray", "white", "pink", "red", "dark red"), 
+          col = (colfunc1(18)),
+          sepwidth=c(0.01,0.02),sepcolor="black",colsep=1:ncol(matS2_diff_new),rowsep=1:nrow(matS2_diff_new),
+          key = TRUE, keysize = 2.5, density.info = "none", trace = "none", main = c(reps,"genes sampled", "\n(S2 difference)"),
+          xlab = "proportion of introgressed genes introgressed from 3 to 2",
+          ylab = "proportion of sampled genes introgressed"
+)
+
+
+#Make heatmap for S3 diff
+matS3_diff_new<-matS3_diff[ nrow(matS3_diff):1, ]
+
+#assign color function
+colfunc2<-colorRampPalette(c("red","white", "white", "dark gray"))
+
+heatmap.2(matS3_diff_new, Rowv =NULL, Colv = NULL, 
+          col = (colfunc2(18)),
+          sepwidth=c(0.01,0.02),sepcolor="black",colsep=1:ncol(matS3_diff_new),rowsep=1:nrow(matS3_diff_new),
+          key = TRUE, keysize = 2.5, density.info = "none", trace = "none", main = c(reps,"genes sampled", "\n(S3 difference)"),
+          xlab = "proportion of introgressed genes introgressed from 3 to 2",
+          ylab = "proportion of sampled genes introgressed"
+)
+
+
+##############################################################################
+### Create graphs for the P VALUE for the difference between DXSP and DXIG ###
+##############################################################################
+#initiate an empty matrix
+matS2_p<-matrix(, ncol = 11, nrow = 9)
+matS3_p<-matrix(, ncol = 11, nrow = 9)
+
+prop3_2<-c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0)
+
+for(y in 1:length(prop3_2)){
+  #total measurement from uni or bidirectional introgressed genes.
+  total_S2<-c(sample(stats_out_df$S2igto2, prop3_2[y]*reps),sample(stats_out_df$S2igto3, ((1-(prop3_2[y]))*reps)))
+  total_S3<-c(sample(stats_out_df$S3igto2, prop3_2[y]*reps),sample(stats_out_df$S3igto3, ((1-(prop3_2[y]))*reps)))
+  
+  #subsample the totals to test different numbers of introgressed vs speciation genes
+  #different value of the proportion of the genome that was introgressed
+  propIG<-c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+  
+  #start a nested loop for proportion of genome introgressed
+  for(z in 1:length(propIG)){
+    #Assign the final dataset for speciation genes
+    sp_finalS2<-sample(stats_out_df$S2sp, ((1-(propIG[z]))*reps))
+    sp_finalS3<-sample(stats_out_df$S3sp, ((1-(propIG[z]))*reps))
+    
+    #Assign the final dataset for IG genes
+    ig_finalS2<-sample(total_S2, propIG[z]*reps)
+    ig_finalS3<-sample(total_S3, propIG[z]*reps)
+    
+    # 32 = -1
+    # 23 = 1
+    
+    #Calculate difference between D2SP and D2IG
+    D2_p<-wilcox.test(sp_finalS2, ig_finalS2)$p.value
+    
+    #Ask which hypothesis S3 is consistent with
+    D3_p<-wilcox.test(sp_finalS3, ig_finalS3)$p.value
+    
+    #store results to a matrix of results
+    matS2_p[z,y]<-D2_p
+    matS3_p[z,y]<-D3_p
+  }
+}
+#clean up S2 and S3 matrix
+row.names(matS2_p)<-propIG
+colnames(matS2_p)<-prop3_2
+
+row.names(matS3_p)<-propIG
+colnames(matS3_p)<-prop3_2
+
+#Make heatmap for S2 diff
+matS2_p_new<-matS2_p[ nrow(matS2_p):1, ]
+
+#assign color function
+colfunc1<-colorRampPalette(c("red","white", "white", "dark gray", "dark gray", "dark gray", "dark gray", "dark gray", "dark gray", "dark gray", "dark gray", "dark gray", "dark gray"))
+
+heatmap.2(matS2_p_new, Rowv =NULL, Colv = NULL, 
+          col = (colfunc1(30)),
+          sepwidth=c(0.01,0.02),sepcolor="black",colsep=1:ncol(matS2_p_new),rowsep=1:nrow(matS2_p_new),
+          key = TRUE, density.info = "none", trace = "none", main = c(reps,"genes sampled", "\n(S2 P value)"),
+          xlab = "proportion of introgressed genes introgressed from 3 to 2",
+          ylab = "proportion of sampled genes introgressed"
+)
+
+
+#Make heatmap for S3 diff
+matS3_p_new<-matS3_p[ nrow(matS3_p):1, ]
+
+#assign color function
+colfunc2<-colorRampPalette(c("dark gray", "white", "white", "red", "red", "red", "red", "red", "red", "red", "red", "red", "red"))
+
+heatmap.2(matS3_p_new, Rowv =NULL, Colv = NULL, 
+          #col= c("dark gray", "gray", "light gray", "white", "pink", "red", "dark red"), 
+          col = (colfunc2(30)),
+          sepwidth=c(0.01,0.02),sepcolor="black",colsep=1:ncol(matS3_p_new),rowsep=1:nrow(matS3_p_new),
+          key = TRUE, density.info = "none", trace = "none", main = c(reps,"genes sampled", "\n(S3 P value)"),
+          xlab = "proportion of introgressed genes introgressed from 3 to 2",
+          ylab = "proportion of sampled genes introgressed"
+)
 
 
 
@@ -233,7 +394,7 @@ heatmap.2(mat_comb_new, Rowv =NULL, Colv = NULL, col=c("red", "white", "dark gra
 
 
 
-
+#MAKE BOXPLOTS
 
 
 ### CREATE CODE FOR RESULTS ###

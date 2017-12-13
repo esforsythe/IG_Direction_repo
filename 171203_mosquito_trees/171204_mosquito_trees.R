@@ -16,7 +16,7 @@ trees<-read.tree("catfile_mosquitotrees_171204")
 #IMPORTANT!!!!
 #Use this switch to look at only autozomal loci!
 #There are 228 X chrom loci and they're at the end of the "catfile"
-trees<-trees[1:(length(trees)-228)]
+#trees<-trees[1:(length(trees)-228)]
 
 
 #Assign one tree for testing
@@ -25,8 +25,13 @@ trees<-trees[1:(length(trees)-228)]
 #Root tree by outgroup
 #root_tree<-root(tree, "O", resolve.root=TRUE, edgelabel=TRUE)
 
+#########################################################
+#########################################################
+#THIS IS A FUNCTION FOR THE Q - R (qua and mer) IG event# 
+#########################################################
+#########################################################
 
-skeeter_depths<-function(tree){
+skeeter_depths_QR_IG<-function(tree){
 
 #midpoint root the tree
 #chose this method for rooting because it allows me to calculate of node depths involving species R
@@ -66,7 +71,7 @@ return(c(top, D1, D2, D3))
 #############################
 
 #run the script
-output<-lapply(trees, skeeter_depths) 
+output<-lapply(trees, skeeter_depths_QR_IG) 
 
 #clean up output
 #convert the output from a list to a dataframe
@@ -97,9 +102,274 @@ wilcox.test(as.numeric(Sub_RL$D3), as.numeric(Sub_RQ$D1))$p.value
 boxplot(
   as.numeric(Sub_LQ$D1), as.numeric(Sub_RQ$D1), 
   as.numeric(Sub_LQ$D2), as.numeric(Sub_RQ$D2), 
-  as.numeric(Sub_LQ$D3), as.numeric(Sub_RQ$D3)
+  as.numeric(Sub_LQ$D3), as.numeric(Sub_RQ$D3),
+  outline = FALSE
 )
 
 wilcox.test(as.numeric(Sub_LQ$D1), as.numeric(Sub_RQ$D1))$p.value
 wilcox.test(as.numeric(Sub_LQ$D2), as.numeric(Sub_RQ$D2))$p.value
 wilcox.test(as.numeric(Sub_LQ$D3), as.numeric(Sub_RQ$D3))$p.value
+
+
+##################################################################
+##################################################################
+#THIS IS A FUNCTION FOR THE A - (C,G) (ara - (col, gam)) IG event# 
+##################################################################
+##################################################################
+
+skeeter_depths_A_CG_IG<-function(tree){
+  
+  #midpoint root the tree
+  #chose this method for rooting because it allows me to calculate of node depths involving species R
+  root_tree<-midpoint(tree, node.labels="support")
+  
+  #Turn tree into chronogram
+  #Note that lambda=0 here. I may need to explore this parameter
+  chrono_tree<-chronopl(root_tree, lambda = 0)
+  
+  #now drop extra tips from tree
+  drop_tree<-drop.tip(chrono_tree, c("L", "Q"))
+  
+  #Now return the topology of the tree
+  if(is.monophyletic(drop_tree, c("A", "G", "C"))){
+    top<-"A_CG"
+  }else if(is.monophyletic(drop_tree, c("A", "R"))){
+    top<-"AR"
+  }else if(is.monophyletic(drop_tree, c("R", "C", "G"))){
+    top<-"R_CG"
+  }else{
+    top<-"NA"
+  }
+  
+  #Get node depths for trees
+  D1<-1-node.depth.edgelength(drop_tree)[getMRCA(phy=drop_tree, c("A", "C", "G"))]
+  
+  D2<-1-node.depth.edgelength(drop_tree)[getMRCA(phy=drop_tree, c("A", "R"))]
+  
+  D3<-1-node.depth.edgelength(drop_tree)[getMRCA(phy=drop_tree, c("R", "C", "G"))]
+  
+  return(c(top, D1, D2, D3))
+  
+}
+
+#############################
+###### END FUNCTION  ########
+#############################
+
+#run the script
+output<-lapply(trees, skeeter_depths_A_CG_IG) 
+
+#clean up output
+#convert the output from a list to a dataframe
+output_df <- data.frame(matrix(unlist(output), nrow=length(trees), byrow=TRUE), stringsAsFactors = FALSE)
+names(output_df) <- c("Tops", "D1", "D2" ,"D3")
+
+#subset dataset
+Sub_A_CG<-subset(output_df, output_df$Top=="A_CG")
+Sub_AR<-subset(output_df, output_df$Top=="AR")
+Sub_R_CG<-subset(output_df, output_df$Top=="R_CG")
+
+
+#Box plot for "T2" nodes from each tree
+boxplot(
+  as.numeric(Sub_AR$D2), as.numeric(Sub_A_CG$D1), as.numeric(Sub_R_CG$D3)
+)
+
+#LQ vs RQ
+wilcox.test(as.numeric(Sub_LQ$D2), as.numeric(Sub_RQ$D1))$p.value
+
+#LQ vs RL
+wilcox.test(as.numeric(Sub_LQ$D2), as.numeric(Sub_RL$D3))$p.value
+
+#LQ vs RQ
+wilcox.test(as.numeric(Sub_RL$D3), as.numeric(Sub_RQ$D1))$p.value
+
+### NOW DO IG directionality test!
+boxplot(
+  as.numeric(Sub_AR$D1), as.numeric(Sub_A_CG$D1), 
+  as.numeric(Sub_AR$D2), as.numeric(Sub_A_CG$D2), 
+  as.numeric(Sub_AR$D3), as.numeric(Sub_A_CG$D3),
+  outline = FALSE
+)
+
+wilcox.test(as.numeric(Sub_AR$D1), as.numeric(Sub_A_CG$D1))$p.value
+wilcox.test(as.numeric(Sub_AR$D2), as.numeric(Sub_A_CG$D2))$p.value
+wilcox.test(as.numeric(Sub_AR$D3), as.numeric(Sub_A_CG$D3))$p.value
+
+
+##################################################################
+##################################################################
+#              REDO with slightly different taxa                 #
+#                                                                #
+#THIS IS A FUNCTION FOR THE A - (C,G) (ara - (col, gam)) IG event# 
+##################################################################
+##################################################################
+
+skeeter_depths_A_CG_IG2<-function(tree){
+  
+  #midpoint root the tree
+  #chose this method for rooting because it allows me to calculate of node depths involving species R
+  root_tree<-midpoint(tree, node.labels="support")
+  
+  #Turn tree into chronogram
+  #Note that lambda=0 here. I may need to explore this parameter
+  chrono_tree<-chronopl(root_tree, lambda = 0)
+  
+  #now drop extra tips from tree
+  drop_tree<-drop.tip(chrono_tree, c("L", "R"))
+  
+  #Now return the topology of the tree
+  if(is.monophyletic(drop_tree, c("A", "G", "C"))){
+    top<-"A_CG"
+  }else if(is.monophyletic(drop_tree, c("A", "Q"))){
+    top<-"AQ"
+  }else if(is.monophyletic(drop_tree, c("Q", "C", "G"))){
+    top<-"Q_CG"
+  }else{
+    top<-"NA"
+  }
+  
+  #Get node depths for trees
+  D1<-1-node.depth.edgelength(drop_tree)[getMRCA(phy=drop_tree, c("A", "C", "G"))]
+  
+  D2<-1-node.depth.edgelength(drop_tree)[getMRCA(phy=drop_tree, c("A", "Q"))]
+  
+  D3<-1-node.depth.edgelength(drop_tree)[getMRCA(phy=drop_tree, c("Q", "C", "G"))]
+  
+  return(c(top, D1, D2, D3))
+  
+}
+
+#############################
+###### END FUNCTION  ########
+#############################
+
+#run the script
+output<-lapply(trees, skeeter_depths_A_CG_IG2) 
+
+#clean up output
+#convert the output from a list to a dataframe
+output_df <- data.frame(matrix(unlist(output), nrow=length(trees), byrow=TRUE), stringsAsFactors = FALSE)
+names(output_df) <- c("Tops", "D1", "D2" ,"D3")
+
+#subset dataset
+Sub_A_CG<-subset(output_df, output_df$Top=="A_CG")
+Sub_AQ<-subset(output_df, output_df$Top=="AQ")
+Sub_Q_CG<-subset(output_df, output_df$Top=="Q_CG")
+
+
+#Box plot for "T2" nodes from each tree
+boxplot(
+  as.numeric(Sub_AQ$D2), as.numeric(Sub_A_CG$D1), as.numeric(Sub_Q_CG$D3)
+)
+
+#LQ vs RQ
+wilcox.test(as.numeric(Sub_LQ$D2), as.numeric(Sub_RQ$D1))$p.value
+
+#LQ vs RL
+wilcox.test(as.numeric(Sub_LQ$D2), as.numeric(Sub_RL$D3))$p.value
+
+#LQ vs RQ
+wilcox.test(as.numeric(Sub_RL$D3), as.numeric(Sub_RQ$D1))$p.value
+
+### NOW DO IG directionality test!
+boxplot(
+  as.numeric(Sub_AQ$D1), as.numeric(Sub_A_CG$D1), 
+  as.numeric(Sub_AQ$D2), as.numeric(Sub_A_CG$D2), 
+  as.numeric(Sub_AQ$D3), as.numeric(Sub_A_CG$D3),
+  outline = FALSE
+)
+
+wilcox.test(as.numeric(Sub_AQ$D1), as.numeric(Sub_A_CG$D1))$p.value
+wilcox.test(as.numeric(Sub_AQ$D2), as.numeric(Sub_A_CG$D2))$p.value
+wilcox.test(as.numeric(Sub_AQ$D3), as.numeric(Sub_A_CG$D3))$p.value
+
+
+##################################################################
+##################################################################
+#         REDO AGAIN with slightly different taxa AGAIN          #
+#                                                                #
+#THIS IS A FUNCTION FOR THE A - (C,G) (ara - (col, gam)) IG event# 
+##################################################################
+##################################################################
+
+skeeter_depths_A_CG_IG3<-function(tree){
+  
+  #midpoint root the tree
+  #chose this method for rooting because it allows me to calculate of node depths involving species R
+  root_tree<-midpoint(tree, node.labels="support")
+  
+  #Turn tree into chronogram
+  #Note that lambda=0 here. I may need to explore this parameter
+  chrono_tree<-chronopl(root_tree, lambda = 0)
+  
+  #now drop extra tips from tree
+  drop_tree<-drop.tip(chrono_tree, c("Q", "R"))
+  
+  #Now return the topology of the tree
+  if(is.monophyletic(drop_tree, c("A", "G", "C"))){
+    top<-"A_CG"
+  }else if(is.monophyletic(drop_tree, c("A", "L"))){
+    top<-"AL"
+  }else if(is.monophyletic(drop_tree, c("L", "C", "G"))){
+    top<-"L_CG"
+  }else{
+    top<-"NA"
+  }
+  
+  #Get node depths for trees
+  D1<-1-node.depth.edgelength(drop_tree)[getMRCA(phy=drop_tree, c("A", "C", "G"))]
+  
+  D2<-1-node.depth.edgelength(drop_tree)[getMRCA(phy=drop_tree, c("A", "L"))]
+  
+  D3<-1-node.depth.edgelength(drop_tree)[getMRCA(phy=drop_tree, c("L", "C", "G"))]
+  
+  return(c(top, D1, D2, D3))
+  
+}
+
+#############################
+###### END FUNCTION  ########
+#############################
+
+#run the script
+output<-lapply(trees, skeeter_depths_A_CG_IG3) 
+
+#clean up output
+#convert the output from a list to a dataframe
+output_df <- data.frame(matrix(unlist(output), nrow=length(trees), byrow=TRUE), stringsAsFactors = FALSE)
+names(output_df) <- c("Tops", "D1", "D2" ,"D3")
+
+#subset dataset
+Sub_A_CG<-subset(output_df, output_df$Top=="A_CG")
+Sub_AL<-subset(output_df, output_df$Top=="AL")
+Sub_L_CG<-subset(output_df, output_df$Top=="L_CG")
+
+
+#Box plot for "T2" nodes from each tree
+boxplot(
+  as.numeric(Sub_AL$D2), as.numeric(Sub_A_CG$D1), as.numeric(Sub_L_CG$D3)
+)
+
+#LQ vs RQ
+wilcox.test(as.numeric(Sub_LQ$D2), as.numeric(Sub_RQ$D1))$p.value
+
+#LQ vs RL
+wilcox.test(as.numeric(Sub_LQ$D2), as.numeric(Sub_RL$D3))$p.value
+
+#LQ vs RQ
+wilcox.test(as.numeric(Sub_RL$D3), as.numeric(Sub_RQ$D1))$p.value
+
+### NOW DO IG directionality test!
+boxplot(
+  as.numeric(Sub_AL$D1), as.numeric(Sub_A_CG$D1), 
+  as.numeric(Sub_AL$D2), as.numeric(Sub_A_CG$D2), 
+  as.numeric(Sub_AL$D3), as.numeric(Sub_A_CG$D3),
+  outline = FALSE
+)
+
+wilcox.test(as.numeric(Sub_AL$D1), as.numeric(Sub_A_CG$D1))$p.value
+wilcox.test(as.numeric(Sub_AL$D2), as.numeric(Sub_A_CG$D2))$p.value
+wilcox.test(as.numeric(Sub_AL$D3), as.numeric(Sub_A_CG$D3))$p.value
+
+

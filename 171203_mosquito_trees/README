@@ -1,2 +1,10 @@
 Add raxml to path
 PATH=$PATH:/Applications/standard-RAxML-master
+
+Mosquito species code:
+An. arabiensis = A
+An. coluzzii = C
+An. gambiae = G
+An. melas = L
+An. merus = R
+An. quadirannulatus = Q
